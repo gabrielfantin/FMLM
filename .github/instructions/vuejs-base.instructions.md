@@ -116,20 +116,6 @@ Instructions for building high-quality VueJS 3 applications with the Composition
 - Add meaningful `alt` text for images and icons
 - Ensure color contrast meets WCAG AA standards
 
-## Implementation Process
-1. Plan component and composable architecture
-2. Initialize Vite project with Vue 3 and TypeScript
-3. Define Pinia stores and composables
-4. Create core UI components and layout
-5. Integrate routing and navigation
-6. Implement data fetching and state logic
-7. Build forms with validation and error states
-8. Add global error handling and fallback UIs
-9. Add unit and E2E tests
-10. Optimize performance and bundle size
-11. Ensure accessibility compliance
-12. Document components, composables, and stores
-
 ## Additional Guidelines
 - Follow Vue’s official style guide (vuejs.org/style-guide)
 - Document complex logic with JSDoc/TSDoc

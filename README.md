@@ -15,13 +15,13 @@ Focus: Enable basic library access and navigation. Users can immediately import/
     
     *   Generate thumbnails from files using image crate (e.g., resize to 200x200px).
         
-    *   UI: Svelte component with lazy loading (e.g., virtual scrolling for 100+ items); hover shows enlarged preview.
+    *   UI: Vue.js component with lazy loading (e.g., virtual scrolling for 100+ items); hover shows enlarged preview.
         
     *   Add sorting/filter toggles (date ascending/descending).
         
     *   Slideshow: Keyboard controls (arrow keys) and timer-based playback.
         
-*   **Dependencies**: File scanning basics (from next feature); frontend framework (Svelte).
+*   **Dependencies**: File scanning basics (from next feature); frontend framework (Vue.js).
     
 *   **Complexity/Effort**: Low (UI-focused; ~2-3 days).
     
