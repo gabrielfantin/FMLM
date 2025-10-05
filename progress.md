@@ -2,9 +2,68 @@
 
 This document tracks the status of features planned and implemented in the FMLM app. Each feature is listed with its current implementation status.
 
+## Project Setup
+
+**Package Manager:** Yarn (v1.22.22)
+- ✅ Migrated from npm to Yarn
+- ✅ Dependencies installed and working
+- ✅ Dev server running successfully with `yarn tauri dev`
+
+**Styling & Icons:**
+- ✅ Tailwind CSS v4.1 configured with @tailwindcss/vite plugin
+- ✅ Lucide Vue Next for icon components
+- ✅ CSS imported in src/style.css with `@import "tailwindcss"`
+- ✅ All components refactored to use Tailwind utilities (removed ~400+ lines of custom CSS)
+- ✅ All SVG icons replaced with Lucide components (FolderOpen, Check, Loader2, Image, Play, AlertCircle)
+
+**Rust Backend:**
+- ✅ Code reviewed and updated to follow Rust best practices and guidelines
+- ✅ Comprehensive documentation added (module, function, and example docs)
+- ✅ Expanded test coverage from 1 to 6 unit tests + 1 doctest
+- ✅ Added common trait implementations (PartialEq, Eq, Copy, Default)
+- ✅ Extracted helper functions for better code organization
+- ✅ Passes all quality checks: `cargo check`, `cargo test`, `cargo clippy` (zero warnings)
+- ✅ Updated Cargo.toml with proper metadata (license, repository, keywords, categories)
+
+**Commands:**
+- `yarn install` - Install dependencies
+- `yarn dev` - Start Vite dev server only
+- `yarn tauri dev` - Start full Tauri app in dev mode
+- `yarn build` - Build for production
+
 ## Phase 1: Core Viewing and Browsing
 
-- Thumbnail Grid View (FR-3.2): Planned
+### Thumbnail Grid View (FR-3.2): In Progress (Base Implementation Complete)
+
+**Implemented:**
+- ✅ Directory selection with native dialog (Tauri plugin-dialog)
+- ✅ Recursive directory scanning for image and video files
+- ✅ Support for multiple image formats (jpg, jpeg, png, gif, bmp, webp, heic, heif, tiff, svg)
+- ✅ Support for multiple video formats (mp4, mov, avi, mkv, webm, flv, wmv, m4v, mpg, mpeg)
+- ✅ Responsive CSS Grid layout (1-2 cols mobile, 4-6 cols desktop)
+- ✅ File metadata extraction (size, modified date, file type)
+- ✅ Direct file display using Tauri's convertFileSrc
+- ✅ Video preview with play icon overlay
+- ✅ File type badges (Image/Video)
+- ✅ Empty state messaging
+- ✅ Loading states with spinner
+- ✅ Error handling and display
+
+**Pending (Future Iterations):**
+- ⏳ Thumbnail generation (currently displaying full files)
+- ⏳ Hover zoom/preview functionality
+- ⏳ Sort by date controls (currently sorts newest first by default)
+- ⏳ Full-screen slideshow mode
+- ⏳ Virtual scrolling for performance with 1000+ files
+- ⏳ Keyboard navigation
+
+**Technical Stack:**
+- Rust: `image`, `walkdir`, `serde`, `chrono`
+- Vue 3 Composition API with TypeScript
+- Tauri plugins: `dialog`, `fs`
+
+---
+
 - Easily See Photo/Video Information (FR-1.1): Planned
 - Library Indexing (FR-2.6): Planned
 
