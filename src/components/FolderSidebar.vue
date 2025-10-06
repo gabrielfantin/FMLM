@@ -172,9 +172,17 @@ defineExpose({
       </div>
     </div>
 
-    <!-- Footer Info -->
-    <div class="p-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-      <p>{{ folders.length }} folder{{ folders.length !== 1 ? 's' : '' }} tracked</p>
+    <!-- Footer with App Title -->
+    <div class="p-6 border-t border-gray-200 dark:border-gray-700">
+      <h1 class="text-lg font-bold mb-1 bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">
+        FMLM
+      </h1>
+      <p class="text-xs text-gray-600 dark:text-gray-400 mb-3">
+        File & Media Library Manager
+      </p>
+      <p class="text-xs text-gray-500 dark:text-gray-500">
+        {{ folders.length }} folder{{ folders.length !== 1 ? 's' : '' }} tracked
+      </p>
     </div>
   </aside>
 </template>

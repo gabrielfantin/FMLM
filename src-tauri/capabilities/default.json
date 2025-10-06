@@ -9,6 +9,8 @@
     "dialog:default",
     "fs:default",
     "core:path:allow-resolve",
-    "core:path:allow-normalize"
+    "core:path:allow-normalize",
+    "core:window:allow-set-size",
+    "core:window:allow-inner-size"
   ]
 }

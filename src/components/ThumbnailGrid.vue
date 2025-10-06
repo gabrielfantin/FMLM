@@ -50,7 +50,7 @@ function handleFileClick(file: MediaFile) {
     </div>
 
     <!-- Thumbnail Grid -->
-    <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-5 py-4 sm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] sm:gap-4 lg:grid-cols-[repeat(auto-fill,minmax(220px,1fr))] lg:gap-6 2xl:grid-cols-[repeat(auto-fill,minmax(240px,1fr))]">
+    <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] sm:gap-2 lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] lg:gap-3 2xl:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
       <div 
         v-for="item in mediaItems" 
         :key="item.path"
@@ -58,13 +58,13 @@ function handleFileClick(file: MediaFile) {
         @click="handleFileClick(item)"
       >
         <!-- Thumbnail Wrapper -->
-        <div class="relative bg-gray-100 rounded-xl overflow-hidden shadow-sm transition-shadow hover:shadow-lg">
+        <div class="relative bg-gray-100 rounded-lg overflow-hidden shadow-sm transition-shadow hover:shadow-lg">
           <!-- Image Thumbnail -->
           <img 
             v-if="item.media_type === 'image'"
             :src="item.url" 
             :alt="item.name"
-            class="w-full h-[200px] object-cover block sm:h-[150px]"
+            class="w-full h-[180px] object-cover block sm:h-[140px]"
             loading="lazy"
           />
           
@@ -72,20 +72,20 @@ function handleFileClick(file: MediaFile) {
           <div v-else-if="item.media_type === 'video'" class="relative">
             <video 
               :src="item.url"
-              class="w-full h-[200px] object-cover block sm:h-[150px]"
+              class="w-full h-[180px] object-cover block sm:h-[140px]"
               preload="metadata"
             />
             <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
-              <Play :size="48" class="text-white drop-shadow-lg" fill="currentColor" />
+              <Play :size="40" class="text-white drop-shadow-lg" fill="currentColor" />
             </div>
           </div>
 
           <!-- File Info -->
-          <div class="p-3 bg-white">
-            <span class="block text-sm font-medium text-gray-800 truncate mb-1" :title="item.name">
+          <div class="p-2 bg-white">
+            <span class="block text-xs font-medium text-gray-800 truncate mb-0.5" :title="item.name">
               {{ item.name }}
             </span>
-            <div class="flex justify-between items-center text-xs text-gray-500">
+            <div class="flex justify-between items-center text-[0.65rem] text-gray-500">
               <span>{{ formatFileSize(item.size) }}</span>
               <span>{{ formatDate(item.modified) }}</span>
             </div>
@@ -94,7 +94,7 @@ function handleFileClick(file: MediaFile) {
 
         <!-- Type Badge -->
         <div 
-          class="absolute top-2 right-2 px-2 py-1 text-[0.7rem] font-semibold text-white rounded backdrop-blur-sm shadow-md"
+          class="absolute top-1.5 right-1.5 px-1.5 py-0.5 text-[0.65rem] font-semibold text-white rounded backdrop-blur-sm shadow-md"
           :class="{
             'bg-blue-500/90': item.media_type === 'image',
             'bg-red-500/90': item.media_type === 'video',
@@ -107,7 +107,7 @@ function handleFileClick(file: MediaFile) {
     </div>
 
     <!-- Footer -->
-    <div v-if="mediaFiles.length > 0" class="mt-8 p-4 text-center text-gray-500 text-sm">
+    <div v-if="mediaFiles.length > 0" class="mt-4 p-3 text-center text-gray-500 text-sm">
       <p class="font-medium">
         {{ mediaFiles.length }} {{ mediaFiles.length === 1 ? 'file' : 'files' }} found
       </p>

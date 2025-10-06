@@ -69,6 +69,18 @@ This document tracks the status of features planned and implemented in the FMLM 
   - Folders automatically saved to SQLite database
   - Visual indication of currently selected folder
   - Persistent folder history across app sessions
+  - App title and branding in sidebar footer
+- ✅ **UI/UX Improvements:**
+  - Compact thumbnail grid layout for better space utilization
+  - Reduced spacing between items (gap: 3px on desktop, 2px on mobile)
+  - Smaller thumbnails (180px default, 140px mobile) to fit more items
+  - Reduced padding in file info cards
+  - More content visible without scrolling
+- ✅ **Window State Persistence:**
+  - Window size automatically saved to database on resize
+  - Window size restored on app startup
+  - Debounced save (500ms) to avoid excessive database writes
+  - Default window size: 1200x800 (min: 800x600)
 
 **Pending (Future Iterations):**
 - ⏳ Thumbnail generation (currently displaying full files)

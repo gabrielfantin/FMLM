@@ -3,10 +3,14 @@ import { ref } from 'vue'
 import FolderSidebar from './components/FolderSidebar.vue'
 import ThumbnailGrid from './components/ThumbnailGrid.vue'
 import { useMediaScanner } from './composables/useMediaScanner'
+import { useWindowPersistence } from './composables/useWindowPersistence'
 import { AlertCircle } from 'lucide-vue-next'
 
 const { mediaFiles, isLoading, error, selectedFolderId, scanDirectory } = useMediaScanner()
 const sidebarRef = ref<InstanceType<typeof FolderSidebar> | null>(null)
+
+// Initialize window size persistence
+useWindowPersistence()
 
 async function handleNewFolderSelected(path: string) {
   await scanDirectory(path, true)
@@ -37,19 +41,9 @@ function handleFileClick(file: any) {
 
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto">
-      <div class="max-w-[1400px] mx-auto px-8 py-8 sm:px-4">
-        <!-- Header -->
-        <header class="text-center mb-8">
-          <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent sm:text-3xl">
-            FMLM - File & Media Library Manager
-          </h1>
-          <p class="text-lg text-gray-600 dark:text-gray-400">
-            Organize and browse your photos and videos
-          </p>
-        </header>
-
+      <div class="max-w-[1400px] mx-auto px-6 py-6 sm:px-4">
         <!-- Error Banner -->
-        <div v-if="error" class="flex items-center gap-3 px-6 py-4 mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200 text-sm">
+        <div v-if="error" class="flex items-center gap-3 px-6 py-4 mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200 text-sm">
           <AlertCircle :size="24" class="flex-shrink-0 text-red-600 dark:text-red-400" />
           <span>{{ error }}</span>
         </div>
