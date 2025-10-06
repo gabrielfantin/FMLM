@@ -3,10 +3,15 @@
 //! A Tauri-based application for organizing and browsing photos and videos.
 //! Provides recursive directory scanning and media file management capabilities.
 
+use tauri::Manager;
+
 pub mod scanner;
+pub mod database;
+pub mod db_commands;
 
 // Re-export common types for convenience
 pub use scanner::{MediaFile, MediaType, scan_directory};
+pub use database::{DbPool, initialize_database};
 
 /// Example greeting command for Tauri IPC.
 ///
@@ -37,9 +42,38 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .setup(|app| {
+            // Initialize database on app startup
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::block_on(async move {
+                match database::initialize_database(&app_handle).await {
+                    Ok(pool) => {
+                        println!("Database initialized successfully");
+                        app_handle.manage(pool);
+                        Ok(())
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to initialize database: {}", e);
+                        Err(Box::new(e) as Box<dyn std::error::Error>)
+                    }
+                }
+            })
+        })
         .invoke_handler(tauri::generate_handler![
             greet,
-            scanner::scan_directory
+            scanner::scan_directory,
+            // Database commands
+            db_commands::add_scanned_folder,
+            db_commands::get_scanned_folders,
+            db_commands::delete_scanned_folder,
+            db_commands::add_media_metadata,
+            db_commands::get_media_by_folder,
+            db_commands::get_all_media,
+            db_commands::delete_media_metadata,
+            db_commands::set_preference,
+            db_commands::get_preference,
+            db_commands::get_all_preferences,
+            db_commands::delete_preference,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

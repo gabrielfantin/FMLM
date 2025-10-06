@@ -25,6 +25,18 @@ This document tracks the status of features planned and implemented in the FMLM 
 - ✅ Passes all quality checks: `cargo check`, `cargo test`, `cargo clippy` (zero warnings)
 - ✅ Updated Cargo.toml with proper metadata (license, repository, keywords, categories)
 
+**Database:**
+- ✅ SQLite integration with sqlx for async operations
+- ✅ Database stored in user's system Tauri app data directory
+- ✅ Automatic migrations on app startup
+- ✅ Three main tables: scanned_folders, media_metadata, user_preferences
+- ✅ Full CRUD operations via Tauri commands
+- ✅ Connection pooling for performance
+- ✅ Foreign key constraints and indexes for data integrity
+- ✅ Stores media metadata (dimensions, duration, file info, thumbnails)
+- ✅ Stores user preferences and settings
+- ✅ Tracks scanned folders with last scan time and file counts
+
 **Commands:**
 - `yarn install` - Install dependencies
 - `yarn dev` - Start Vite dev server only
@@ -48,6 +60,15 @@ This document tracks the status of features planned and implemented in the FMLM 
 - ✅ Empty state messaging
 - ✅ Loading states with spinner
 - ✅ Error handling and display
+- ✅ **Working Folders Sidebar:**
+  - Left sidebar menu displaying tracked folders
+  - "Add Folder" button to scan new directories
+  - Folder list with name, path, and file count
+  - Click to load folder contents
+  - "Forget" button to remove folders from tracking
+  - Folders automatically saved to SQLite database
+  - Visual indication of currently selected folder
+  - Persistent folder history across app sessions
 
 **Pending (Future Iterations):**
 - ⏳ Thumbnail generation (currently displaying full files)
