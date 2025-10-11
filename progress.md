@@ -82,6 +82,16 @@ This document tracks the status of features planned and implemented in the FMLM 
   - Grid automatically adjusts number of columns based on available width
   - Smooth sidebar collapse animation (300ms transition)
   - Toggle button with visual feedback (Show/Hide Sidebar)
+  - **Card size selector** with three options: Small (120px), Medium (160px), Large (220px)
+  - Dynamic grid that adapts to selected card size
+  - Persistent size selection during session
+  - Visual indication of currently selected size
+  - **Compact icon-only controls** for minimal UI footprint
+  - Icon-only sidebar toggle button positioned at sidebar border (fixed, left side)
+  - Icon-only size selector (Grid3x3, Grid2x2, LayoutGrid icons)
+  - Size controls positioned fixed at top-right corner
+  - Reduced control bar padding and spacing
+  - Controls float above content without affecting layout
 - ✅ **Window State Persistence:**
   - Window size automatically saved to database on resize
   - Window size restored on app startup

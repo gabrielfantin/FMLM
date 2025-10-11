@@ -45,21 +45,20 @@ function toggleSidebar() {
       @folder-selected="handleFolderSelected"
     />
 
+    <!-- Toggle Sidebar Button -->
+    <button
+      @click="toggleSidebar"
+      class="fixed left-0 top-4 z-50 p-2 bg-white dark:bg-gray-800 border border-l-0 border-gray-200 dark:border-gray-700 rounded-r-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-md hover:shadow-lg"
+      :class="{ 'left-80': !isSidebarCollapsed }"
+      :title="isSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'"
+    >
+      <PanelLeft v-if="isSidebarCollapsed" :size="20" class="text-gray-600 dark:text-gray-400" />
+      <PanelLeftClose v-else :size="20" class="text-gray-600 dark:text-gray-400" />
+    </button>
+
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto">
       <div class="h-full px-4 py-4">
-        <!-- Toggle Sidebar Button -->
-        <button
-          @click="toggleSidebar"
-          class="mb-4 flex items-center gap-2 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
-          :title="isSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'"
-        >
-          <PanelLeft v-if="isSidebarCollapsed" :size="20" class="text-gray-600 dark:text-gray-400" />
-          <PanelLeftClose v-else :size="20" class="text-gray-600 dark:text-gray-400" />
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ isSidebarCollapsed ? 'Show' : 'Hide' }} Sidebar
-          </span>
-        </button>
         <!-- Error Banner -->
         <div v-if="error" class="flex items-center gap-3 px-6 py-4 mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200 text-sm">
           <AlertCircle :size="24" class="flex-shrink-0 text-red-600 dark:text-red-400" />
