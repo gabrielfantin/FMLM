@@ -95,7 +95,7 @@ function handleFileClick(file: MediaFile) {
     </div>
 
     <!-- Thumbnail Grid -->
-    <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 sm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] sm:gap-2 lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] lg:gap-3 2xl:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+    <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-1">
       <div 
         v-for="item in mediaItems" 
         :key="item.path"
@@ -103,13 +103,13 @@ function handleFileClick(file: MediaFile) {
         @click="handleFileClick(item)"
       >
         <!-- Thumbnail Wrapper -->
-        <div class="relative bg-gray-100 rounded-lg overflow-hidden shadow-sm transition-shadow hover:shadow-lg">
+        <div class="relative bg-gray-100 rounded overflow-hidden shadow-sm transition-shadow hover:shadow-lg">
           <!-- Thumbnail (for both images and videos) -->
           <div v-if="item.thumbnailUrl" class="relative">
             <img 
               :src="item.thumbnailUrl" 
               :alt="item.name"
-              class="w-full h-[180px] object-cover block sm:h-[140px]"
+              class="w-full h-[160px] object-cover block"
               loading="lazy"
             />
             <!-- Video overlay -->
@@ -119,22 +119,22 @@ function handleFileClick(file: MediaFile) {
           </div>
           
           <!-- Loading state -->
-          <div v-else-if="item.isLoadingThumbnail" class="w-full h-[180px] sm:h-[140px] flex items-center justify-center bg-gray-200">
+          <div v-else-if="item.isLoadingThumbnail" class="w-full h-[160px] flex items-center justify-center bg-gray-200">
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
           </div>
           
           <!-- Fallback: Placeholder while thumbnail hasn't loaded yet -->
-          <div v-else class="w-full h-[180px] sm:h-[140px] flex items-center justify-center bg-gray-200">
+          <div v-else class="w-full h-[160px] flex items-center justify-center bg-gray-200">
             <Image v-if="item.media_type === 'image'" :size="32" class="text-gray-400" />
             <Play v-else :size="32" class="text-gray-400" />
           </div>
 
           <!-- File Info -->
-          <div class="p-2 bg-white">
-            <span class="block text-xs font-medium text-gray-800 truncate mb-0.5" :title="item.name">
+          <div class="p-1.5 bg-white">
+            <span class="block text-[0.65rem] font-medium text-gray-800 truncate" :title="item.name">
               {{ item.name }}
             </span>
-            <div class="flex justify-between items-center text-[0.65rem] text-gray-500">
+            <div class="flex justify-between items-center text-[0.6rem] text-gray-500 mt-0.5">
               <span>{{ formatFileSize(item.size) }}</span>
               <span>{{ formatDate(item.modified) }}</span>
             </div>
@@ -143,7 +143,7 @@ function handleFileClick(file: MediaFile) {
 
         <!-- Type Badge -->
         <div 
-          class="absolute top-1.5 right-1.5 px-1.5 py-0.5 text-[0.65rem] font-semibold text-white rounded backdrop-blur-sm shadow-md"
+          class="absolute top-1 right-1 px-1 py-0.5 text-[0.6rem] font-semibold text-white rounded backdrop-blur-sm shadow-md"
           :class="{
             'bg-blue-500/90': item.media_type === 'image',
             'bg-red-500/90': item.media_type === 'video',
@@ -156,7 +156,7 @@ function handleFileClick(file: MediaFile) {
     </div>
 
     <!-- Footer -->
-    <div v-if="mediaFiles.length > 0" class="mt-4 p-3 text-center text-gray-500 text-sm">
+    <div v-if="mediaFiles.length > 0" class="mt-2 p-2 text-center text-gray-500 text-sm">
       <p class="font-medium">
         {{ mediaFiles.length }} {{ mediaFiles.length === 1 ? 'file' : 'files' }} found
       </p>

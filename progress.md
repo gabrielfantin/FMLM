@@ -76,6 +76,12 @@ This document tracks the status of features planned and implemented in the FMLM 
   - Smaller thumbnails (180px default, 140px mobile) to fit more items
   - Reduced padding in file info cards
   - More content visible without scrolling
+  - **Collapsible sidebar** with toggle button
+  - **Minimal gap grid** layout (1px gap) for maximum space efficiency
+  - **Adaptive columns** using CSS Grid auto-fill (minmax(160px, 1fr))
+  - Grid automatically adjusts number of columns based on available width
+  - Smooth sidebar collapse animation (300ms transition)
+  - Toggle button with visual feedback (Show/Hide Sidebar)
 - ✅ **Window State Persistence:**
   - Window size automatically saved to database on resize
   - Window size restored on app startup

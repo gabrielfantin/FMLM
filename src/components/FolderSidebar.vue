@@ -7,6 +7,7 @@ import { useDatabase, type ScannedFolder } from '@/composables/useDatabase'
 interface Props {
   selectedFolderId?: number | null
   isScanning?: boolean
+  isCollapsed?: boolean
 }
 
 interface Emits {
@@ -83,7 +84,12 @@ defineExpose({
 </script>
 
 <template>
-  <aside class="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen">
+  <aside 
+    :class="[
+      'bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen transition-all duration-300',
+      isCollapsed ? 'w-0 overflow-hidden' : 'w-80'
+    ]"
+  >
     <!-- Header -->
     <div class="p-6 border-b border-gray-200 dark:border-gray-700">
       <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
