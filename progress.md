@@ -81,9 +81,18 @@ This document tracks the status of features planned and implemented in the FMLM 
   - Window size restored on app startup
   - Debounced save (500ms) to avoid excessive database writes
   - Default window size: 1200x800 (min: 800x600)
+- ✅ **Thumbnail Generation & Caching:**
+  - Automatic thumbnail generation for images using the `image` crate
+  - Video thumbnail extraction using `ffmpeg-next` (captures frame at 10% into video)
+  - Thumbnails cached in user's system cache directory (256x256 JPEG, quality 85)
+  - SHA-256 hash-based cache keys to avoid regenerating thumbnails
+  - Background thumbnail generation as files are added
+  - Thumbnails displayed as they become available
+  - Loading indicators while thumbnails are being generated
+  - Significantly improved performance and reduced memory usage
+  - Tauri commands: generate_thumbnail, thumbnail_exists, get_thumbnail_path, clear_thumbnail_cache, get_cache_size, generate_thumbnails_batch
 
 **Pending (Future Iterations):**
-- ⏳ Thumbnail generation (currently displaying full files)
 - ⏳ Hover zoom/preview functionality
 - ⏳ Sort by date controls (currently sorts newest first by default)
 - ⏳ Full-screen slideshow mode

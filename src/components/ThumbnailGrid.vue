@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import { Image, Play } from 'lucide-vue-next'
 import type { MediaFile } from '../composables/useMediaScanner'
+import { useThumbnails } from '../composables/useThumbnails'
 
 const props = defineProps<{
   mediaFiles: MediaFile[]
@@ -12,12 +13,58 @@ const emit = defineEmits<{
   fileClick: [file: MediaFile]
 }>()
 
+const { generateThumbnail, getThumbnailPath } = useThumbnails()
+const thumbnailUrls = ref<Map<string, string>>(new Map())
+const loadingThumbnails = ref<Set<string>>(new Set())
+
 // Convert file paths to URLs that Tauri can serve
 const mediaItems = computed(() => {
   return props.mediaFiles.map(file => ({
     ...file,
     url: convertFileSrc(file.path),
+    thumbnailUrl: thumbnailUrls.value.get(file.path),
+    isLoadingThumbnail: loadingThumbnails.value.has(file.path),
   }))
+})
+
+// Load thumbnails for all media files
+async function loadThumbnails() {
+  for (const file of props.mediaFiles) {
+    // Skip if already loaded
+    if (thumbnailUrls.value.has(file.path)) {
+      continue
+    }
+
+    // Check if thumbnail exists in cache
+    const cachedThumbnail = await getThumbnailPath(file.path)
+    if (cachedThumbnail) {
+      thumbnailUrls.value.set(file.path, cachedThumbnail)
+      continue
+    }
+
+    // Generate thumbnail in background
+    loadingThumbnails.value.add(file.path)
+    const isVideo = file.media_type === 'video'
+    
+    generateThumbnail(file.path, isVideo).then(thumbnailUrl => {
+      loadingThumbnails.value.delete(file.path)
+      if (thumbnailUrl) {
+        thumbnailUrls.value.set(file.path, thumbnailUrl)
+      }
+    }).catch(error => {
+      console.error('Failed to generate thumbnail for', file.path, error)
+      loadingThumbnails.value.delete(file.path)
+    })
+  }
+}
+
+// Watch for changes in media files
+watch(() => props.mediaFiles, () => {
+  loadThumbnails()
+}, { immediate: true })
+
+onMounted(() => {
+  loadThumbnails()
 })
 
 // Format file size for display
@@ -59,24 +106,38 @@ function handleFileClick(file: MediaFile) {
       >
         <!-- Thumbnail Wrapper -->
         <div class="relative bg-gray-100 rounded-lg overflow-hidden shadow-sm transition-shadow hover:shadow-lg">
-          <!-- Image Thumbnail -->
-          <img 
-            v-if="item.media_type === 'image'"
-            :src="item.url" 
-            :alt="item.name"
-            class="w-full h-[180px] object-cover block sm:h-[140px]"
-            loading="lazy"
-          />
-          
-          <!-- Video Thumbnail -->
-          <div v-else-if="item.media_type === 'video'" class="relative">
-            <video 
-              :src="item.url"
+          <!-- Thumbnail (for both images and videos) -->
+          <div v-if="item.thumbnailUrl" class="relative">
+            <img 
+              :src="item.thumbnailUrl" 
+              :alt="item.name"
               class="w-full h-[180px] object-cover block sm:h-[140px]"
-              preload="metadata"
+              loading="lazy"
             />
-            <div class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+            <!-- Video overlay -->
+            <div v-if="item.media_type === 'video'" class="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
               <Play :size="40" class="text-white drop-shadow-lg" fill="currentColor" />
+            </div>
+          </div>
+          
+          <!-- Loading state -->
+          <div v-else-if="item.isLoadingThumbnail" class="w-full h-[180px] sm:h-[140px] flex items-center justify-center bg-gray-200">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
+          </div>
+          
+          <!-- Fallback: Show original for images, placeholder for videos -->
+          <div v-else>
+            <img 
+              v-if="item.media_type === 'image'"
+              :src="item.url" 
+              :alt="item.name"
+              class="w-full h-[180px] object-cover block sm:h-[140px]"
+              loading="lazy"
+            />
+            <div v-else class="relative">
+              <div class="w-full h-[180px] sm:h-[140px] flex items-center justify-center bg-gray-300">
+                <Play :size="40" class="text-gray-500" />
+              </div>
             </div>
           </div>
 
