@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue'
-import { convertFileSrc } from '@tauri-apps/api/core'
 import { Image, Play } from 'lucide-vue-next'
 import type { MediaFile } from '../composables/useMediaScanner'
 import { useThumbnails } from '../composables/useThumbnails'
@@ -17,11 +16,10 @@ const { generateThumbnail, getThumbnailPath } = useThumbnails()
 const thumbnailUrls = ref<Map<string, string>>(new Map())
 const loadingThumbnails = ref<Set<string>>(new Set())
 
-// Convert file paths to URLs that Tauri can serve
+// Create computed items with thumbnail URLs
 const mediaItems = computed(() => {
   return props.mediaFiles.map(file => ({
     ...file,
-    url: convertFileSrc(file.path),
     thumbnailUrl: thumbnailUrls.value.get(file.path),
     isLoadingThumbnail: loadingThumbnails.value.has(file.path),
   }))
@@ -125,20 +123,10 @@ function handleFileClick(file: MediaFile) {
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
           </div>
           
-          <!-- Fallback: Show original for images, placeholder for videos -->
-          <div v-else>
-            <img 
-              v-if="item.media_type === 'image'"
-              :src="item.url" 
-              :alt="item.name"
-              class="w-full h-[180px] object-cover block sm:h-[140px]"
-              loading="lazy"
-            />
-            <div v-else class="relative">
-              <div class="w-full h-[180px] sm:h-[140px] flex items-center justify-center bg-gray-300">
-                <Play :size="40" class="text-gray-500" />
-              </div>
-            </div>
+          <!-- Fallback: Placeholder while thumbnail hasn't loaded yet -->
+          <div v-else class="w-full h-[180px] sm:h-[140px] flex items-center justify-center bg-gray-200">
+            <Image v-if="item.media_type === 'image'" :size="32" class="text-gray-400" />
+            <Play v-else :size="32" class="text-gray-400" />
           </div>
 
           <!-- File Info -->

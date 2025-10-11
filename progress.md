@@ -83,14 +83,16 @@ This document tracks the status of features planned and implemented in the FMLM 
   - Default window size: 1200x800 (min: 800x600)
 - ✅ **Thumbnail Generation & Caching:**
   - Automatic thumbnail generation for images using the `image` crate
-  - Video thumbnail extraction using `ffmpeg-next` (captures frame at 10% into video)
+  - Video thumbnail extraction using `rsmpeg` with FFmpeg 8.0 support (captures frame at 10% into video)
   - Thumbnails cached in user's system cache directory (256x256 JPEG, quality 85)
   - SHA-256 hash-based cache keys to avoid regenerating thumbnails
-  - Background thumbnail generation as files are added
-  - Thumbnails displayed as they become available
-  - Loading indicators while thumbnails are being generated
+  - Background thumbnail generation with concurrency control (max 5 simultaneous)
+  - Base64 data URLs for browser compatibility (no asset protocol restrictions)
+  - Comprehensive structured logging with `tracing` for debugging
+  - Thumbnails displayed as they become available with loading indicators
   - Significantly improved performance and reduced memory usage
   - Tauri commands: generate_thumbnail, thumbnail_exists, get_thumbnail_path, clear_thumbnail_cache, get_cache_size, generate_thumbnails_batch
+  - Dependencies: `rsmpeg`, `base64`, `tracing`, `tracing-subscriber`, `once_cell`, `futures`
 
 **Pending (Future Iterations):**
 - ⏳ Hover zoom/preview functionality
