@@ -9,6 +9,7 @@ import { AlertCircle, PanelLeftClose, PanelLeft } from 'lucide-vue-next'
 const { mediaFiles, isLoading, error, selectedFolderId, scanDirectory } = useMediaScanner()
 const sidebarRef = ref<InstanceType<typeof FolderSidebar> | null>(null)
 const isSidebarCollapsed = ref(false)
+const selectedMediaFiles = ref<any[]>([])
 
 // Initialize window size persistence
 useWindowPersistence()
@@ -23,9 +24,10 @@ async function handleFolderSelected(_folderId: number, path: string) {
   await scanDirectory(path, true)
 }
 
-function handleFileClick(file: any) {
-  console.log('File clicked:', file)
-  // TODO: Implement file viewer/slideshow in future phase
+function handleSelectionChange(files: any[]) {
+  selectedMediaFiles.value = files
+  console.log(`${files.length} file(s) selected`, files)
+  // TODO: Implement actions for selected files (delete, move, etc.) in future phase
 }
 
 function toggleSidebar() {
@@ -68,7 +70,7 @@ function toggleSidebar() {
         <!-- Content -->
         <ThumbnailGrid 
           :media-files="mediaFiles"
-          @file-click="handleFileClick"
+          @selection-change="handleSelectionChange"
         />
       </div>
     </main>

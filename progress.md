@@ -109,13 +109,29 @@ This document tracks the status of features planned and implemented in the FMLM 
   - Significantly improved performance and reduced memory usage
   - Tauri commands: generate_thumbnail, thumbnail_exists, get_thumbnail_path, clear_thumbnail_cache, get_cache_size, generate_thumbnails_batch
   - Dependencies: `rsmpeg`, `base64`, `tracing`, `tracing-subscriber`, `once_cell`, `futures`
+- ✅ **Media Selection System:**
+  - Single-click selection with visual feedback
+  - **Selected cards are enlarged** (scale 1.1) with indigo ring border
+  - **Multiple selection support:**
+    - Ctrl/Cmd + Click: Toggle individual items
+    - Shift + Click: Range selection from last selected item
+    - Ctrl/Cmd + A: Select all items
+  - **Keyboard navigation:**
+    - Arrow keys (Up/Down/Left/Right) to navigate between items
+    - Arrow keys with Shift to extend selection
+    - Arrow keys with Ctrl/Cmd to move focus without changing selection
+    - Esc key to clear all selections
+  - Focused item indicator (ring outline) separate from selection
+  - Smooth scrolling to bring focused item into view
+  - Selection state management with reactive updates
+  - Parent component receives selection change events
 
 **Pending (Future Iterations):**
 - ⏳ Hover zoom/preview functionality
 - ⏳ Sort by date controls (currently sorts newest first by default)
 - ⏳ Full-screen slideshow mode
 - ⏳ Virtual scrolling for performance with 1000+ files
-- ⏳ Keyboard navigation
+- ⏳ Actions for selected files (delete, move, export, etc.)
 
 **Technical Stack:**
 - Rust: `image`, `walkdir`, `serde`, `chrono`
