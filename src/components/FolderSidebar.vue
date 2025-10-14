@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { FolderOpen, Folder, Trash2, Plus, Loader2 } from 'lucide-vue-next'
 import { open } from '@tauri-apps/plugin-dialog'
 import { useDatabase, type ScannedFolder } from '@/composables/useDatabase'
+import { useResizable } from '@/composables/useResizable'
 
 interface Props {
   selectedFolderId?: number | null
@@ -15,8 +16,22 @@ interface Emits {
   (e: 'new-folder-selected', path: string): void
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+// Resizable sidebar
+const { width: sidebarWidth, isResizing, startResize } = useResizable({
+  defaultWidth: 320, // 80 * 4 = 320px (w-80)
+  minWidth: 200,
+  maxWidth: 600,
+  side: 'left'
+})
+
+// Compute sidebar width style
+const sidebarStyle = computed(() => {
+  if (props.isCollapsed) return { width: '0px' }
+  return { width: `${sidebarWidth.value}px` }
+})
 
 const db = useDatabase()
 const folders = ref<ScannedFolder[]>([])
@@ -77,19 +92,31 @@ async function handleForgetFolder(folder: ScannedFolder, event: Event) {
   }
 }
 
-// Expose loadFolders so parent can refresh the list
+// Expose loadFolders and width so parent can use them
 defineExpose({
   loadFolders,
+  width: sidebarWidth,
 })
 </script>
 
 <template>
   <aside 
     :class="[
-      'bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen transition-all duration-300',
-      isCollapsed ? 'w-0 overflow-hidden' : 'w-80'
+      'relative bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen',
+      isCollapsed ? 'overflow-hidden' : ''
     ]"
+    :style="sidebarStyle"
   >
+    <!-- Resize Handle -->
+    <div
+      v-if="!isCollapsed"
+      @mousedown="startResize"
+      class="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-indigo-500 transition-colors z-50 group"
+      :class="{ 'bg-indigo-500': isResizing }"
+    >
+      <div class="absolute inset-y-0 -right-1 w-3"></div>
+    </div>
+
     <!-- Header -->
     <div class="p-6 border-b border-gray-200 dark:border-gray-700">
       <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">

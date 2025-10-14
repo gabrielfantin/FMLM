@@ -1,18 +1,32 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import FolderSidebar from './components/FolderSidebar.vue'
 import ThumbnailGrid from './components/ThumbnailGrid.vue'
+import MediaInfoPanel from './components/MediaInfoPanel.vue'
 import { useMediaScanner } from './composables/useMediaScanner'
 import { useWindowPersistence } from './composables/useWindowPersistence'
-import { AlertCircle, PanelLeftClose, PanelLeft } from 'lucide-vue-next'
+import { AlertCircle, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight } from 'lucide-vue-next'
 
 const { mediaFiles, isLoading, error, selectedFolderId, scanDirectory } = useMediaScanner()
 const sidebarRef = ref<InstanceType<typeof FolderSidebar> | null>(null)
+const infoPanelRef = ref<InstanceType<typeof MediaInfoPanel> | null>(null)
 const isSidebarCollapsed = ref(false)
+const isInfoPanelCollapsed = ref(false)
 const selectedMediaFiles = ref<any[]>([])
 
 // Initialize window size persistence
 useWindowPersistence()
+
+// Compute toggle button positions based on actual panel widths
+const sidebarToggleLeft = computed(() => {
+  if (isSidebarCollapsed.value) return '0px'
+  return `${sidebarRef.value?.width || 320}px`
+})
+
+const infoPanelToggleRight = computed(() => {
+  if (isInfoPanelCollapsed.value) return '0px'
+  return `${infoPanelRef.value?.width || 384}px`
+})
 
 async function handleNewFolderSelected(path: string) {
   await scanDirectory(path, true)
@@ -33,6 +47,10 @@ function handleSelectionChange(files: any[]) {
 function toggleSidebar() {
   isSidebarCollapsed.value = !isSidebarCollapsed.value
 }
+
+function toggleInfoPanel() {
+  isInfoPanelCollapsed.value = !isInfoPanelCollapsed.value
+}
 </script>
 
 <template>
@@ -50,8 +68,8 @@ function toggleSidebar() {
     <!-- Toggle Sidebar Button -->
     <button
       @click="toggleSidebar"
-      class="fixed left-0 top-4 z-50 p-2 bg-white dark:bg-gray-800 border border-l-0 border-gray-200 dark:border-gray-700 rounded-r-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-md hover:shadow-lg"
-      :class="{ 'left-80': !isSidebarCollapsed }"
+      class="fixed top-4 z-50 p-2 bg-white dark:bg-gray-800 border border-l-0 border-gray-200 dark:border-gray-700 rounded-r-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-md hover:shadow-lg"
+      :style="{ left: sidebarToggleLeft }"
       :title="isSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'"
     >
       <PanelLeft v-if="isSidebarCollapsed" :size="20" class="text-gray-600 dark:text-gray-400" />
@@ -74,6 +92,24 @@ function toggleSidebar() {
         />
       </div>
     </main>
+
+    <!-- Media Info Panel -->
+    <MediaInfoPanel 
+      ref="infoPanelRef"
+      :selected-file="selectedMediaFiles[0]"
+      :is-collapsed="isInfoPanelCollapsed"
+    />
+
+    <!-- Toggle Info Panel Button -->
+    <button
+      @click="toggleInfoPanel"
+      class="fixed top-4 z-50 p-2 bg-white dark:bg-gray-800 border border-r-0 border-gray-200 dark:border-gray-700 rounded-l-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-md hover:shadow-lg"
+      :style="{ right: infoPanelToggleRight }"
+      :title="isInfoPanelCollapsed ? 'Show info panel' : 'Hide info panel'"
+    >
+      <PanelRight v-if="isInfoPanelCollapsed" :size="20" class="text-gray-600 dark:text-gray-400" />
+      <PanelRightClose v-else :size="20" class="text-gray-600 dark:text-gray-400" />
+    </button>
   </div>
 </template>
 

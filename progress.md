@@ -126,6 +126,72 @@ This document tracks the status of features planned and implemented in the FMLM 
   - Smooth scrolling to bring focused item into view
   - Selection state management with reactive updates
   - Parent component receives selection change events
+- ✅ **Media Info Panel:**
+  - Right sidebar panel showing detailed information about selected media
+  - **Full media preview** with original file loaded:
+    - Images displayed using Tauri's asset protocol with convertFileSrc
+    - Videos with HTML5 video player controls and streaming support
+    - **Streaming support** for large video files using Tauri's asset protocol (supports HTTP range requests)
+    - No memory issues - files are streamed on demand instead of loaded entirely
+  - **Comprehensive file details:**
+    - File name with proper formatting
+    - File type with color-coded badge (Image/Video)
+    - File size with human-readable formatting (B, KB, MB, GB)
+    - Last modified date and time with locale formatting
+    - Full file path in monospace font
+  - **Collapsible panel** with toggle button (similar to folder sidebar)
+  - Shows info only for first selected file when multiple are selected
+  - Empty state when no file is selected
+  - Loading indicator during media file load
+  - Error handling for failed file access
+  - **Backend support:**
+    - New Rust commands: `get_asset_url`, `get_mime_type`
+    - Secure file access through Tauri's asset protocol
+    - Asset protocol enabled with full scope for file access
+    - Support for all image and video MIME types
+  - **Icon-only toggle button** that sticks with the panel border:
+    - Dynamically positioned based on actual panel width
+    - Follows panel edge when resized
+    - Fixed positioning at top-right
+  - **Resizable panel** with draggable left edge:
+    - Drag the left border to resize between 300px and up to 70% of screen width
+    - Custom `useResizable` composable for smooth drag-to-resize
+    - Visual feedback on hover and during resize (indigo highlight)
+    - Width automatically adapts to user preference and screen size
+  - **Compact layout** for maximum media preview space:
+    - Removed "Media Info" header
+    - Removed "Preview" section title
+    - Reduced padding from 24px to 12px (p-6 to p-3)
+    - Reduced spacing between elements from 24px to 12px (space-y-6 to space-y-3)
+- ✅ **Cleaner Thumbnail Cards:**
+  - Removed file info panel from individual cards
+  - Cards now show only thumbnails and type badges
+  - More space-efficient layout
+  - Info moved to dedicated MediaInfoPanel for focused viewing
+- ✅ **Resizable Sidebars:**
+  - **Left sidebar (Working Folders)** is resizable:
+    - Drag the right border to resize between 200px and 600px
+    - Default width: 320px (w-80)
+    - Toggle button dynamically follows sidebar edge
+  - **Right panel (Media Info)** is resizable:
+    - Drag the left border to resize between 300px and 70% of screen width
+    - Default width: 384px (w-96)
+    - Toggle button dynamically follows panel edge
+  - **Custom resize implementation:**
+    - No external dependencies - built with vanilla JavaScript
+    - `useResizable` composable handles all resize logic
+    - Supports both fixed and percentage-based max width constraints
+    - Smooth drag experience with visual feedback
+    - Prevents text selection during drag
+    - Width constraints enforced (min/max)
+    - Separate handling for left-side and right-side panels
+    - Toggle buttons track panel widths via computed properties
+- ✅ **Improved Control Layout:**
+  - Card size controls integrated into grid footer
+  - Positioned at bottom-right of grid container (relative positioning)
+  - Displayed alongside file count for better context
+  - No longer overlaps with other UI elements
+  - Part of the scrollable content area
 
 **Pending (Future Iterations):**
 - ⏳ Hover zoom/preview functionality
@@ -133,6 +199,7 @@ This document tracks the status of features planned and implemented in the FMLM 
 - ⏳ Full-screen slideshow mode
 - ⏳ Virtual scrolling for performance with 1000+ files
 - ⏳ Actions for selected files (delete, move, export, etc.)
+- ⏳ Enhanced media metadata extraction (image dimensions, video duration, EXIF data, etc.)
 
 **Technical Stack:**
 - Rust: `image`, `walkdir`, `serde`, `chrono`

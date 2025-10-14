@@ -96,21 +96,6 @@ watch(() => props.mediaFiles, () => {
   loadThumbnails()
 }, { immediate: true })
 
-// Format file size for display
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
-}
-
-// Format timestamp to readable date
-function formatDate(timestamp: number): string {
-  const date = new Date(timestamp * 1000)
-  return date.toLocaleDateString()
-}
-
 // Selection handlers
 function handleCardClick(item: typeof mediaItems.value[0], event: MouseEvent) {
   const index = item.index
@@ -277,47 +262,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="w-full min-h-[400px]">
-    <!-- Card Size Controls -->
-    <div v-if="mediaFiles.length > 0" class="fixed top-4 right-4 z-40 flex items-center gap-1 p-1.5 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-      <button
-        @click="cardSize = 'small'"
-        :class="[
-          'p-2 rounded-md transition-colors',
-          cardSize === 'small'
-            ? 'bg-indigo-600 text-white shadow-sm'
-            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-        ]"
-        title="Small cards"
-      >
-        <Grid3x3 :size="18" />
-      </button>
-      <button
-        @click="cardSize = 'medium'"
-        :class="[
-          'p-2 rounded-md transition-colors',
-          cardSize === 'medium'
-            ? 'bg-indigo-600 text-white shadow-sm'
-            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-        ]"
-        title="Medium cards"
-      >
-        <Grid2x2 :size="18" />
-      </button>
-      <button
-        @click="cardSize = 'large'"
-        :class="[
-          'p-2 rounded-md transition-colors',
-          cardSize === 'large'
-            ? 'bg-indigo-600 text-white shadow-sm'
-            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-        ]"
-        title="Large cards"
-      >
-        <LayoutGrid :size="18" />
-      </button>
-    </div>
-
+  <div class="w-full min-h-[400px] relative">
     <!-- Empty State -->
     <div v-if="mediaFiles.length === 0" class="flex flex-col items-center justify-center py-16 px-8 text-gray-400">
       <Image :size="80" class="mb-6 opacity-50" />
@@ -372,17 +317,6 @@ onUnmounted(() => {
             <Image v-if="item.media_type === 'image'" :size="32" class="text-gray-400" />
             <Play v-else :size="32" class="text-gray-400" />
           </div>
-
-          <!-- File Info -->
-          <div class="p-1.5 bg-white">
-            <span class="block text-[0.65rem] font-medium text-gray-800 truncate" :title="item.name">
-              {{ item.name }}
-            </span>
-            <div class="flex justify-between items-center text-[0.6rem] text-gray-500 mt-0.5">
-              <span>{{ formatFileSize(item.size) }}</span>
-              <span>{{ formatDate(item.modified) }}</span>
-            </div>
-          </div>
         </div>
 
         <!-- Type Badge -->
@@ -399,11 +333,52 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Footer -->
-    <div v-if="mediaFiles.length > 0" class="mt-2 p-2 text-center text-gray-500 text-sm">
-      <p class="font-medium">
+    <!-- Footer with Card Size Controls -->
+    <div v-if="mediaFiles.length > 0" class="mt-2 p-2 flex items-center justify-between">
+      <!-- File count -->
+      <p class="text-gray-500 text-sm font-medium">
         {{ mediaFiles.length }} {{ mediaFiles.length === 1 ? 'file' : 'files' }} found
       </p>
+      
+      <!-- Card Size Controls -->
+      <div class="flex items-center gap-1 p-1.5 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+        <button
+          @click="cardSize = 'small'"
+          :class="[
+            'p-2 rounded-md transition-colors',
+            cardSize === 'small'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          ]"
+          title="Small cards"
+        >
+          <Grid3x3 :size="18" />
+        </button>
+        <button
+          @click="cardSize = 'medium'"
+          :class="[
+            'p-2 rounded-md transition-colors',
+            cardSize === 'medium'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          ]"
+          title="Medium cards"
+        >
+          <Grid2x2 :size="18" />
+        </button>
+        <button
+          @click="cardSize = 'large'"
+          :class="[
+            'p-2 rounded-md transition-colors',
+            cardSize === 'large'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          ]"
+          title="Large cards"
+        >
+          <LayoutGrid :size="18" />
+        </button>
+      </div>
     </div>
   </div>
 </template>
