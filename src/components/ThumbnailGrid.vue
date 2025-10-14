@@ -156,8 +156,7 @@ function handleKeyDown(event: KeyboardEvent) {
       emit('selectionChange', [])
       break
 
-    case 'ArrowRight':
-    case 'ArrowDown': {
+    case 'ArrowRight': {
       event.preventDefault()
       const nextIndex = Math.min(currentIndex + 1, props.mediaFiles.length - 1)
       focusedIndex.value = nextIndex
@@ -174,14 +173,59 @@ function handleKeyDown(event: KeyboardEvent) {
       break
     }
 
-    case 'ArrowLeft':
-    case 'ArrowUp': {
+    case 'ArrowLeft': {
       event.preventDefault()
       const prevIndex = Math.max(currentIndex - 1, 0)
       focusedIndex.value = prevIndex
 
       if (event.shiftKey) {
         selectedPaths.value.add(props.mediaFiles[prevIndex].path)
+      } else if (!event.ctrlKey && !event.metaKey) {
+        selectedPaths.value.clear()
+        selectedPaths.value.add(props.mediaFiles[prevIndex].path)
+        lastSelectedIndex.value = prevIndex
+      }
+      emit('selectionChange', selectedFiles.value)
+      scrollToIndex(prevIndex)
+      break
+    }
+
+    case 'ArrowDown': {
+      event.preventDefault()
+      const itemsPerRow = getItemsPerRow()
+      const nextIndex = Math.min(currentIndex + itemsPerRow, props.mediaFiles.length - 1)
+      focusedIndex.value = nextIndex
+
+      if (event.shiftKey) {
+        // Select all items in the range when shift is pressed
+        const start = Math.min(currentIndex, nextIndex)
+        const end = Math.max(currentIndex, nextIndex)
+        for (let i = start; i <= end; i++) {
+          selectedPaths.value.add(props.mediaFiles[i].path)
+        }
+      } else if (!event.ctrlKey && !event.metaKey) {
+        selectedPaths.value.clear()
+        selectedPaths.value.add(props.mediaFiles[nextIndex].path)
+        lastSelectedIndex.value = nextIndex
+      }
+      emit('selectionChange', selectedFiles.value)
+      scrollToIndex(nextIndex)
+      break
+    }
+
+    case 'ArrowUp': {
+      event.preventDefault()
+      const itemsPerRow = getItemsPerRow()
+      const prevIndex = Math.max(currentIndex - itemsPerRow, 0)
+      focusedIndex.value = prevIndex
+
+      if (event.shiftKey) {
+        // Select all items in the range when shift is pressed
+        const start = Math.min(currentIndex, prevIndex)
+        const end = Math.max(currentIndex, prevIndex)
+        for (let i = start; i <= end; i++) {
+          selectedPaths.value.add(props.mediaFiles[i].path)
+        }
       } else if (!event.ctrlKey && !event.metaKey) {
         selectedPaths.value.clear()
         selectedPaths.value.add(props.mediaFiles[prevIndex].path)
@@ -201,6 +245,16 @@ function handleKeyDown(event: KeyboardEvent) {
       }
       break
   }
+}
+
+// Calculate items per row dynamically
+function getItemsPerRow(): number {
+  const gridElement = document.querySelector('.grid')
+  if (!gridElement) return 1
+  
+  const gridStyles = window.getComputedStyle(gridElement)
+  const gridColumns = gridStyles.gridTemplateColumns.split(' ').length
+  return Math.max(1, gridColumns)
 }
 
 // Scroll focused item into view

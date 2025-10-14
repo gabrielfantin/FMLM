@@ -117,7 +117,8 @@ This document tracks the status of features planned and implemented in the FMLM 
     - Shift + Click: Range selection from last selected item
     - Ctrl/Cmd + A: Select all items
   - **Keyboard navigation:**
-    - Arrow keys (Up/Down/Left/Right) to navigate between items
+    - Arrow keys (Left/Right) to navigate to previous/next item
+    - Arrow keys (Up/Down) to navigate to row above/below (dynamic grid-aware)
     - Arrow keys with Shift to extend selection
     - Arrow keys with Ctrl/Cmd to move focus without changing selection
     - Esc key to clear all selections
