@@ -1,61 +1,121 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { invoke } from "@tauri-apps/api/core";
+import { ref, computed } from 'vue'
+import FolderSidebar from './components/FolderSidebar.vue'
+import ThumbnailGrid from './components/ThumbnailGrid.vue'
+import MediaInfoPanel from './components/MediaInfoPanel.vue'
+import { useMediaScanner } from './composables/useMediaScanner'
+import { useWindowPersistence } from './composables/useWindowPersistence'
+import { AlertCircle, PanelLeftClose, PanelLeft, PanelRightClose, PanelRight } from 'lucide-vue-next'
 
-const greetMsg = ref("");
-const name = ref("");
+const { mediaFiles, isLoading, error, selectedFolderId, scanDirectory } = useMediaScanner()
+const sidebarRef = ref<InstanceType<typeof FolderSidebar> | null>(null)
+const infoPanelRef = ref<InstanceType<typeof MediaInfoPanel> | null>(null)
+const isSidebarCollapsed = ref(false)
+const isInfoPanelCollapsed = ref(false)
+const selectedMediaFiles = ref<any[]>([])
 
-async function greet() {
-  // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-  greetMsg.value = await invoke("greet", { name: name.value });
+// Initialize window size persistence
+useWindowPersistence()
+
+// Compute toggle button positions based on actual panel widths
+const sidebarToggleLeft = computed(() => {
+  if (isSidebarCollapsed.value) return '0px'
+  return `${sidebarRef.value?.width || 320}px`
+})
+
+const infoPanelToggleRight = computed(() => {
+  if (isInfoPanelCollapsed.value) return '0px'
+  return `${infoPanelRef.value?.width || 384}px`
+})
+
+async function handleNewFolderSelected(path: string) {
+  await scanDirectory(path, true)
+  // Refresh the sidebar folder list after scanning
+  sidebarRef.value?.loadFolders()
+}
+
+async function handleFolderSelected(_folderId: number, path: string) {
+  await scanDirectory(path, true)
+}
+
+function handleSelectionChange(files: any[]) {
+  selectedMediaFiles.value = files
+  console.log(`${files.length} file(s) selected`, files)
+  // TODO: Implement actions for selected files (delete, move, etc.) in future phase
+}
+
+function toggleSidebar() {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value
+}
+
+function toggleInfoPanel() {
+  isInfoPanelCollapsed.value = !isInfoPanelCollapsed.value
 }
 </script>
 
 <template>
-  <main class="container">
-    <h1>Welcome to Tauri + Vue</h1>
+  <div class="flex h-screen overflow-hidden">
+    <!-- Left Sidebar -->
+    <FolderSidebar 
+      ref="sidebarRef"
+      :selected-folder-id="selectedFolderId"
+      :is-scanning="isLoading"
+      :is-collapsed="isSidebarCollapsed"
+      @new-folder-selected="handleNewFolderSelected"
+      @folder-selected="handleFolderSelected"
+    />
 
-    <div class="row">
-      <a href="https://vite.dev" target="_blank">
-        <img src="/vite.svg" class="logo vite" alt="Vite logo" />
-      </a>
-      <a href="https://tauri.app" target="_blank">
-        <img src="/tauri.svg" class="logo tauri" alt="Tauri logo" />
-      </a>
-      <a href="https://vuejs.org/" target="_blank">
-        <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-      </a>
-    </div>
-    <p>Click on the Tauri, Vite, and Vue logos to learn more.</p>
+    <!-- Toggle Sidebar Button -->
+    <button
+      @click="toggleSidebar"
+      class="fixed top-4 z-50 p-2 bg-white dark:bg-gray-800 border border-l-0 border-gray-200 dark:border-gray-700 rounded-r-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-md hover:shadow-lg"
+      :style="{ left: sidebarToggleLeft }"
+      :title="isSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'"
+    >
+      <PanelLeft v-if="isSidebarCollapsed" :size="20" class="text-gray-600 dark:text-gray-400" />
+      <PanelLeftClose v-else :size="20" class="text-gray-600 dark:text-gray-400" />
+    </button>
 
-    <form class="row" @submit.prevent="greet">
-      <input id="greet-input" v-model="name" placeholder="Enter a name..." />
-      <button type="submit">Greet</button>
-    </form>
-    <p>{{ greetMsg }}</p>
-  </main>
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto">
+      <div class="h-full px-4 py-4">
+        <!-- Error Banner -->
+        <div v-if="error" class="flex items-center gap-3 px-6 py-4 mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-800 dark:text-red-200 text-sm">
+          <AlertCircle :size="24" class="flex-shrink-0 text-red-600 dark:text-red-400" />
+          <span>{{ error }}</span>
+        </div>
+
+        <!-- Content -->
+        <ThumbnailGrid 
+          :media-files="mediaFiles"
+          @selection-change="handleSelectionChange"
+        />
+      </div>
+    </main>
+
+    <!-- Media Info Panel -->
+    <MediaInfoPanel 
+      ref="infoPanelRef"
+      :selected-file="selectedMediaFiles[0]"
+      :is-collapsed="isInfoPanelCollapsed"
+    />
+
+    <!-- Toggle Info Panel Button -->
+    <button
+      @click="toggleInfoPanel"
+      class="fixed top-4 z-50 p-2 bg-white dark:bg-gray-800 border border-r-0 border-gray-200 dark:border-gray-700 rounded-l-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-md hover:shadow-lg"
+      :style="{ right: infoPanelToggleRight }"
+      :title="isInfoPanelCollapsed ? 'Show info panel' : 'Hide info panel'"
+    >
+      <PanelRight v-if="isInfoPanelCollapsed" :size="20" class="text-gray-600 dark:text-gray-400" />
+      <PanelRightClose v-else :size="20" class="text-gray-600 dark:text-gray-400" />
+    </button>
+  </div>
 </template>
 
-<style scoped>
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
-
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #249b73);
-}
-
-</style>
 <style>
 :root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -63,98 +123,20 @@ async function greet() {
   -webkit-text-size-adjust: 100%;
 }
 
-.container {
+body {
   margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
+  padding: 0;
+  min-height: 100vh;
+  background-color: #f9fafb;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
-}
-
-#greet-input {
-  margin-right: 5px;
+#app {
+  min-height: 100vh;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
-
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
-  }
-  button:active {
-    background-color: #0f0f0f69;
+  body {
+    background-color: #1f2937;
   }
 }
-
 </style>
