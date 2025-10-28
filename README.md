@@ -246,3 +246,9 @@ Focus: Media manipulation for maintenance/sharing. Highest complexity due to pro
 *   **Dependencies**: All prior AI (labeling/grouping); Ollama models.
     
 *   **Complexity/Effort**: High (Prompt handling; ~6 days).
+
+## License
+
+Copyright (c) 2025 Gabriel Pinto Fantin.  
+This project is shared publicly for portfolio and educational viewing purposes only.  
+Reuse, modification, or redistribution are prohibited.
