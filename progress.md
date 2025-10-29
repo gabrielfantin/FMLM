@@ -192,6 +192,16 @@ This document tracks the status of features planned and implemented in the FMLM 
   - Displayed alongside file count for better context
   - No longer overlaps with other UI elements
   - Part of the scrollable content area
+- ✅ **Compact Top Menu Bar:**
+  - Sticky top bar in the grid with all view controls
+  - Transparent background with backdrop blur for modern look
+  - Left section: Sidebar toggle button and file count
+  - Center section: Card size controls (Small/Medium/Large icons)
+  - Right section: Info panel toggle button
+  - All controls consolidated in one place for easy access
+  - Toggle buttons moved from App.vue to ThumbnailGrid component
+  - Cleaner main layout without floating buttons
+  - Menu bar only visible when media files are present
 
 **Pending (Future Iterations):**
 - ⏳ Hover zoom/preview functionality

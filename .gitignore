@@ -23,3 +23,7 @@ ffmpeg
 *.njsproj
 *.sln
 *.sw?
+
+
+target/rust-analyzer/flycheck0/stderr
+target/rust-analyzer/flycheck0/stdout

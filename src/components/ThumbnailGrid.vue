@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
-import { Image, Play, Grid3x3, Grid2x2, LayoutGrid } from 'lucide-vue-next'
+import { Image, Play, Grid3x3, Grid2x2, LayoutGrid, PanelLeft, PanelLeftClose, PanelRight, PanelRightClose } from 'lucide-vue-next'
 import type { MediaFile } from '../composables/useMediaScanner'
 import { useThumbnails } from '../composables/useThumbnails'
 
 const props = defineProps<{
   mediaFiles: MediaFile[]
+  isSidebarCollapsed?: boolean
+  isInfoPanelCollapsed?: boolean
 }>()
 
 const emit = defineEmits<{
   selectionChange: [selectedFiles: MediaFile[]]
+  toggleSidebar: []
+  toggleInfoPanel: []
 }>()
 
 type CardSize = 'small' | 'medium' | 'large'
@@ -263,6 +267,79 @@ onUnmounted(() => {
 
 <template>
   <div class="w-full min-h-[400px] relative">
+    <!-- Compact Top Menu Bar -->
+    <div v-if="mediaFiles.length > 0" class="sticky top-0 z-40 mb-4 p-2 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 shadow-sm">
+      <div class="flex items-center justify-between">
+        <!-- Left side: Sidebar toggle and file count -->
+        <div class="flex items-center gap-3">
+          <button
+            @click="emit('toggleSidebar')"
+            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            :title="isSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'"
+          >
+            <PanelLeft v-if="isSidebarCollapsed" :size="20" class="text-gray-600 dark:text-gray-400" />
+            <PanelLeftClose v-else :size="20" class="text-gray-600 dark:text-gray-400" />
+          </button>
+          
+          <div class="h-5 w-px bg-gray-300 dark:bg-gray-600"></div>
+          
+          <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">
+            {{ mediaFiles.length }} {{ mediaFiles.length === 1 ? 'file' : 'files' }}
+          </p>
+        </div>
+
+        <!-- Center: Card Size Controls -->
+        <div class="flex items-center gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+          <button
+            @click="cardSize = 'small'"
+            :class="[
+              'p-2 rounded-md transition-colors',
+              cardSize === 'small'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+            ]"
+            title="Small cards"
+          >
+            <Grid3x3 :size="18" />
+          </button>
+          <button
+            @click="cardSize = 'medium'"
+            :class="[
+              'p-2 rounded-md transition-colors',
+              cardSize === 'medium'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+            ]"
+            title="Medium cards"
+          >
+            <Grid2x2 :size="18" />
+          </button>
+          <button
+            @click="cardSize = 'large'"
+            :class="[
+              'p-2 rounded-md transition-colors',
+              cardSize === 'large'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+            ]"
+            title="Large cards"
+          >
+            <LayoutGrid :size="18" />
+          </button>
+        </div>
+
+        <!-- Right side: Info panel toggle -->
+        <button
+          @click="emit('toggleInfoPanel')"
+          class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          :title="isInfoPanelCollapsed ? 'Show info panel' : 'Hide info panel'"
+        >
+          <PanelRight v-if="isInfoPanelCollapsed" :size="20" class="text-gray-600 dark:text-gray-400" />
+          <PanelRightClose v-else :size="20" class="text-gray-600 dark:text-gray-400" />
+        </button>
+      </div>
+    </div>
+
     <!-- Empty State -->
     <div v-if="mediaFiles.length === 0" class="flex flex-col items-center justify-center py-16 px-8 text-gray-400">
       <Image :size="80" class="mb-6 opacity-50" />
@@ -330,54 +407,6 @@ onUnmounted(() => {
         >
           {{ item.file_type.toUpperCase() }}
         </div>
-      </div>
-    </div>
-
-    <!-- Footer with Card Size Controls -->
-    <div v-if="mediaFiles.length > 0" class="mt-2 p-2 flex items-center justify-between">
-      <!-- File count -->
-      <p class="text-gray-500 text-sm font-medium">
-        {{ mediaFiles.length }} {{ mediaFiles.length === 1 ? 'file' : 'files' }} found
-      </p>
-      
-      <!-- Card Size Controls -->
-      <div class="flex items-center gap-1 p-1.5 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-        <button
-          @click="cardSize = 'small'"
-          :class="[
-            'p-2 rounded-md transition-colors',
-            cardSize === 'small'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-          ]"
-          title="Small cards"
-        >
-          <Grid3x3 :size="18" />
-        </button>
-        <button
-          @click="cardSize = 'medium'"
-          :class="[
-            'p-2 rounded-md transition-colors',
-            cardSize === 'medium'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-          ]"
-          title="Medium cards"
-        >
-          <Grid2x2 :size="18" />
-        </button>
-        <button
-          @click="cardSize = 'large'"
-          :class="[
-            'p-2 rounded-md transition-colors',
-            cardSize === 'large'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-          ]"
-          title="Large cards"
-        >
-          <LayoutGrid :size="18" />
-        </button>
       </div>
     </div>
   </div>
