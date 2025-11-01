@@ -163,6 +163,45 @@ This document tracks the status of features planned and implemented in the FMLM 
     - Removed "Preview" section title
     - Reduced padding from 24px to 12px (p-6 to p-3)
     - Reduced spacing between elements from 24px to 12px (space-y-6 to space-y-3)
+  - **Enhanced Media Metadata Display:**
+    - **Comprehensive video information:**
+      - Video codec name and description (e.g., "H264 - H.264 / AVC / MPEG-4 AVC")
+      - Resolution with aspect ratio (e.g., "1920 × 1080 (16:9)")
+      - Frame rate in fps
+      - Video bitrate (formatted as Mbps/Kbps)
+      - Pixel format (e.g., "yuv420p")
+    - **Detailed audio information:**
+      - Audio codec name and description (e.g., "AAC - AAC (Advanced Audio Coding)")
+      - Sample rate in kHz
+      - Number of channels (Mono/Stereo/Surround)
+      - Audio bitrate
+      - Sample format
+    - **General file information:**
+      - Container format name and description
+      - Duration (formatted as HH:MM:SS or MM:SS)
+      - Overall bitrate
+      - File size
+    - **Additional metadata** extracted from file (tags, EXIF, etc.)
+    - **Image information:**
+      - Image dimensions
+      - Pixel format/color space
+      - Format-specific details
+    - **On-demand metadata extraction:**
+      - Metadata loaded when file is selected (not during directory scan)
+      - Loading indicator while extracting information
+      - Error handling for unsupported formats
+    - **Backend implementation:**
+      - New `media_info.rs` module using FFmpeg for comprehensive metadata extraction
+      - Separate handling for images (using `image` crate) and videos (using `rsmpeg`)
+      - Codec information extracted via FFmpeg's avcodec_descriptor API
+      - Database schema extended with metadata fields:
+        - video_codec, video_codec_long
+        - audio_codec, audio_codec_long
+        - bitrate, frame_rate
+        - sample_rate, audio_channels
+        - format, metadata_json
+      - Optional database caching for future performance improvements
+    - **Dependencies:** `rsmpeg`, `image` crate with GenericImageView trait
 - ✅ **Cleaner Thumbnail Cards:**
   - Removed file info panel from individual cards
   - Cards now show only thumbnails and type badges
@@ -209,7 +248,7 @@ This document tracks the status of features planned and implemented in the FMLM 
 - ⏳ Full-screen slideshow mode
 - ⏳ Virtual scrolling for performance with 1000+ files
 - ⏳ Actions for selected files (delete, move, export, etc.)
-- ⏳ Enhanced media metadata extraction (image dimensions, video duration, EXIF data, etc.)
+- ⏳ Database caching for extracted metadata (currently extracted on-demand)
 
 **Technical Stack:**
 - Rust: `image`, `walkdir`, `serde`, `chrono`

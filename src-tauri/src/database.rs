@@ -56,6 +56,17 @@ pub struct MediaMetadata {
     pub modified_date: DateTime<Utc>,
     pub thumbnail_path: Option<String>,
     pub indexed_at: DateTime<Utc>,
+    // Extended metadata fields
+    pub video_codec: Option<String>,
+    pub video_codec_long: Option<String>,
+    pub audio_codec: Option<String>,
+    pub audio_codec_long: Option<String>,
+    pub bitrate: Option<i64>,
+    pub frame_rate: Option<f64>,
+    pub sample_rate: Option<i64>,
+    pub audio_channels: Option<i64>,
+    pub format: Option<String>,
+    pub metadata_json: Option<String>,
 }
 
 /// Parameters for inserting media metadata
@@ -72,6 +83,17 @@ pub struct InsertMediaParams {
     pub created_date: Option<DateTime<Utc>>,
     pub modified_date: DateTime<Utc>,
     pub thumbnail_path: Option<String>,
+    // Extended metadata fields
+    pub video_codec: Option<String>,
+    pub video_codec_long: Option<String>,
+    pub audio_codec: Option<String>,
+    pub audio_codec_long: Option<String>,
+    pub bitrate: Option<i64>,
+    pub frame_rate: Option<f64>,
+    pub sample_rate: Option<i64>,
+    pub audio_channels: Option<i64>,
+    pub format: Option<String>,
+    pub metadata_json: Option<String>,
 }
 
 /// Represents user preferences
@@ -169,6 +191,55 @@ async fn run_migrations(pool: &DbPool) -> DatabaseResult<()> {
     )
     .execute(pool)
     .await?;
+    
+    // Add new columns for extended metadata (safe to run on existing databases)
+    // Video codec information
+    let _ = sqlx::query("ALTER TABLE media_metadata ADD COLUMN video_codec TEXT")
+        .execute(pool)
+        .await;
+    
+    let _ = sqlx::query("ALTER TABLE media_metadata ADD COLUMN video_codec_long TEXT")
+        .execute(pool)
+        .await;
+    
+    // Audio codec information
+    let _ = sqlx::query("ALTER TABLE media_metadata ADD COLUMN audio_codec TEXT")
+        .execute(pool)
+        .await;
+    
+    let _ = sqlx::query("ALTER TABLE media_metadata ADD COLUMN audio_codec_long TEXT")
+        .execute(pool)
+        .await;
+    
+    // Bitrate information
+    let _ = sqlx::query("ALTER TABLE media_metadata ADD COLUMN bitrate INTEGER")
+        .execute(pool)
+        .await;
+    
+    // Frame rate
+    let _ = sqlx::query("ALTER TABLE media_metadata ADD COLUMN frame_rate REAL")
+        .execute(pool)
+        .await;
+    
+    // Sample rate for audio
+    let _ = sqlx::query("ALTER TABLE media_metadata ADD COLUMN sample_rate INTEGER")
+        .execute(pool)
+        .await;
+    
+    // Number of audio channels
+    let _ = sqlx::query("ALTER TABLE media_metadata ADD COLUMN audio_channels INTEGER")
+        .execute(pool)
+        .await;
+    
+    // General format information
+    let _ = sqlx::query("ALTER TABLE media_metadata ADD COLUMN format TEXT")
+        .execute(pool)
+        .await;
+    
+    // Additional metadata as JSON
+    let _ = sqlx::query("ALTER TABLE media_metadata ADD COLUMN metadata_json TEXT")
+        .execute(pool)
+        .await;
     
     // Create indexes for better query performance
     sqlx::query(
@@ -287,16 +358,28 @@ pub async fn insert_media_metadata(
         INSERT INTO media_metadata (
             folder_id, file_path, file_name, file_type, file_size,
             width, height, duration, created_date, modified_date,
-            thumbnail_path, indexed_at
+            thumbnail_path, indexed_at,
+            video_codec, video_codec_long, audio_codec, audio_codec_long,
+            bitrate, frame_rate, sample_rate, audio_channels, format, metadata_json
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(file_path) DO UPDATE SET
             modified_date = excluded.modified_date,
             file_size = excluded.file_size,
             width = excluded.width,
             height = excluded.height,
             duration = excluded.duration,
-            thumbnail_path = excluded.thumbnail_path
+            thumbnail_path = excluded.thumbnail_path,
+            video_codec = excluded.video_codec,
+            video_codec_long = excluded.video_codec_long,
+            audio_codec = excluded.audio_codec,
+            audio_codec_long = excluded.audio_codec_long,
+            bitrate = excluded.bitrate,
+            frame_rate = excluded.frame_rate,
+            sample_rate = excluded.sample_rate,
+            audio_channels = excluded.audio_channels,
+            format = excluded.format,
+            metadata_json = excluded.metadata_json
         RETURNING id
         "#,
     )
@@ -312,6 +395,16 @@ pub async fn insert_media_metadata(
     .bind(params.modified_date)
     .bind(params.thumbnail_path.as_deref())
     .bind(now)
+    .bind(params.video_codec.as_deref())
+    .bind(params.video_codec_long.as_deref())
+    .bind(params.audio_codec.as_deref())
+    .bind(params.audio_codec_long.as_deref())
+    .bind(params.bitrate)
+    .bind(params.frame_rate)
+    .bind(params.sample_rate)
+    .bind(params.audio_channels)
+    .bind(params.format.as_deref())
+    .bind(params.metadata_json.as_deref())
     .fetch_one(pool)
     .await?;
     
@@ -324,7 +417,9 @@ pub async fn get_media_by_folder(pool: &DbPool, folder_id: i64) -> DatabaseResul
         r#"
         SELECT id, folder_id, file_path, file_name, file_type, file_size,
                width, height, duration, created_date, modified_date,
-               thumbnail_path, indexed_at
+               thumbnail_path, indexed_at,
+               video_codec, video_codec_long, audio_codec, audio_codec_long,
+               bitrate, frame_rate, sample_rate, audio_channels, format, metadata_json
         FROM media_metadata
         WHERE folder_id = ?
         ORDER BY file_name ASC
@@ -343,7 +438,9 @@ pub async fn get_all_media(pool: &DbPool) -> DatabaseResult<Vec<MediaMetadata>> 
         r#"
         SELECT id, folder_id, file_path, file_name, file_type, file_size,
                width, height, duration, created_date, modified_date,
-               thumbnail_path, indexed_at
+               thumbnail_path, indexed_at,
+               video_codec, video_codec_long, audio_codec, audio_codec_long,
+               bitrate, frame_rate, sample_rate, audio_channels, format, metadata_json
         FROM media_metadata
         ORDER BY indexed_at DESC
         "#,

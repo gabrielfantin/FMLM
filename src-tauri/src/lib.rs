@@ -12,6 +12,7 @@ pub mod db_commands;
 pub mod thumbnail;
 pub mod thumbnail_commands;
 pub mod file_commands;
+pub mod media_info;
 
 // Re-export common types for convenience
 pub use scanner::{MediaFile, MediaType, scan_directory};
@@ -97,6 +98,8 @@ pub fn run() {
             // File access commands
             file_commands::get_asset_url,
             file_commands::get_mime_type,
+            // Media info commands
+            media_info::get_media_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

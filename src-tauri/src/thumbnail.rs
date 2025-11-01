@@ -125,7 +125,7 @@ pub fn generate_video_thumbnail(file_path: &str) -> ThumbnailResult<String> {
     
     info!("Generating new video thumbnail");
     let c_file_path = CString::new(file_path)
-        .map_err(|e| {
+        .map_err(|_e| {
             error!("Invalid file path (contains null bytes)");
             ThumbnailError::VideoDecoding("Invalid file path".to_string())
         })?;

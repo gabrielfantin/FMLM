@@ -1,10 +1,45 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { Image, Play, FileType, Calendar, HardDrive, Info, Loader2 } from 'lucide-vue-next'
+import { Image, Play, FileType, Calendar, HardDrive, Info, Loader2, Film, Music, Monitor, Clock } from 'lucide-vue-next'
 import { invoke } from '@tauri-apps/api/core'
 import { convertFileSrc } from '@tauri-apps/api/core'
 import type { MediaFile } from '../composables/useMediaScanner'
 import { useResizable } from '@/composables/useResizable'
+
+interface VideoInfo {
+  codec: string
+  codec_long: string
+  width: number
+  height: number
+  fps: number
+  bitrate?: number
+  pix_fmt: string
+  aspect_ratio: string
+}
+
+interface AudioInfo {
+  codec: string
+  codec_long: string
+  sample_rate: number
+  channels: number
+  bitrate?: number
+  sample_fmt: string
+}
+
+interface GeneralInfo {
+  format: string
+  format_long: string
+  duration?: number
+  bitrate?: number
+  size: number
+}
+
+interface MediaInfo {
+  video?: VideoInfo
+  audio?: AudioInfo
+  general: GeneralInfo
+  metadata: Record<string, string>
+}
 
 interface Props {
   selectedFile?: MediaFile | null
@@ -30,6 +65,9 @@ const panelStyle = computed(() => {
 const mediaUrl = ref<string | null>(null)
 const isLoadingMedia = ref(false)
 const loadError = ref<string | null>(null)
+const mediaInfo = ref<MediaInfo | null>(null)
+const isLoadingInfo = ref(false)
+const infoError = ref<string | null>(null)
 
 // Format file size for display
 function formatFileSize(bytes: number): string {
@@ -44,6 +82,49 @@ function formatFileSize(bytes: number): string {
 function formatDate(timestamp: number): string {
   const date = new Date(timestamp * 1000)
   return date.toLocaleString()
+}
+
+// Format bitrate for display
+function formatBitrate(bitrate: number): string {
+  if (bitrate < 1000) return `${bitrate} bps`
+  if (bitrate < 1000000) return `${(bitrate / 1000).toFixed(1)} Kbps`
+  return `${(bitrate / 1000000).toFixed(2)} Mbps`
+}
+
+// Format duration for display
+function formatDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = Math.floor(seconds % 60)
+  
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+  }
+  return `${minutes}:${String(secs).padStart(2, '0')}`
+}
+
+// Load detailed media information
+async function loadMediaInfo() {
+  if (!props.selectedFile) {
+    mediaInfo.value = null
+    return
+  }
+
+  isLoadingInfo.value = true
+  infoError.value = null
+
+  try {
+    const info = await invoke<MediaInfo>('get_media_info', {
+      filePath: props.selectedFile.path
+    })
+    mediaInfo.value = info
+  } catch (error) {
+    console.error('Failed to load media info:', error)
+    infoError.value = error instanceof Error ? error.message : String(error)
+    mediaInfo.value = null
+  } finally {
+    isLoadingInfo.value = false
+  }
 }
 
 // Get short file name (last part of path)
@@ -86,6 +167,7 @@ async function loadMediaFile() {
 // Watch for changes in selected file
 watch(() => props.selectedFile, () => {
   loadMediaFile()
+  loadMediaInfo()
 }, { immediate: true })
 
 // Expose width so parent can use it
@@ -238,6 +320,206 @@ defineExpose({
               {{ selectedFile.path }}
             </p>
           </div>
+
+          <!-- Divider -->
+          <div v-if="mediaInfo || isLoadingInfo" class="border-t border-gray-200 dark:border-gray-700"></div>
+
+          <!-- Detailed Media Info Loading -->
+          <div v-if="isLoadingInfo" class="flex items-center justify-center py-4">
+            <Loader2 :size="24" class="animate-spin text-indigo-600" />
+            <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Loading details...</span>
+          </div>
+
+          <!-- Detailed Media Info Error -->
+          <div v-else-if="infoError" class="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+            Failed to load detailed info: {{ infoError }}
+          </div>
+
+          <!-- Detailed Media Info Content -->
+          <template v-else-if="mediaInfo">
+            <!-- Video Information -->
+            <div v-if="mediaInfo.video" class="space-y-3">
+              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <Film :size="16" />
+                Video Information
+              </h3>
+
+              <!-- Resolution -->
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <Monitor :size="16" />
+                  <span class="text-xs font-medium uppercase">Resolution</span>
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white">
+                  {{ mediaInfo.video.width }} × {{ mediaInfo.video.height }}
+                  <span class="text-xs text-gray-500 ml-1">({{ mediaInfo.video.aspect_ratio }})</span>
+                </p>
+              </div>
+
+              <!-- Codec -->
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <FileType :size="16" />
+                  <span class="text-xs font-medium uppercase">Video Codec</span>
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white">
+                  {{ mediaInfo.video.codec.toUpperCase() }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ mediaInfo.video.codec_long }}
+                </p>
+              </div>
+
+              <!-- Frame Rate -->
+              <div v-if="mediaInfo.video.fps > 0" class="space-y-1">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <Film :size="16" />
+                  <span class="text-xs font-medium uppercase">Frame Rate</span>
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white">
+                  {{ mediaInfo.video.fps.toFixed(2) }} fps
+                </p>
+              </div>
+
+              <!-- Video Bitrate -->
+              <div v-if="mediaInfo.video.bitrate" class="space-y-1">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <HardDrive :size="16" />
+                  <span class="text-xs font-medium uppercase">Video Bitrate</span>
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white">
+                  {{ formatBitrate(mediaInfo.video.bitrate) }}
+                </p>
+              </div>
+
+              <!-- Pixel Format -->
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <Info :size="16" />
+                  <span class="text-xs font-medium uppercase">Pixel Format</span>
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white">
+                  {{ mediaInfo.video.pix_fmt }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Audio Information -->
+            <div v-if="mediaInfo.audio" class="space-y-3">
+              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <Music :size="16" />
+                Audio Information
+              </h3>
+
+              <!-- Audio Codec -->
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <FileType :size="16" />
+                  <span class="text-xs font-medium uppercase">Audio Codec</span>
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white">
+                  {{ mediaInfo.audio.codec.toUpperCase() }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ mediaInfo.audio.codec_long }}
+                </p>
+              </div>
+
+              <!-- Sample Rate -->
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <Music :size="16" />
+                  <span class="text-xs font-medium uppercase">Sample Rate</span>
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white">
+                  {{ (mediaInfo.audio.sample_rate / 1000).toFixed(1) }} kHz
+                </p>
+              </div>
+
+              <!-- Channels -->
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <Music :size="16" />
+                  <span class="text-xs font-medium uppercase">Channels</span>
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white">
+                  {{ mediaInfo.audio.channels }} {{ mediaInfo.audio.channels === 1 ? 'channel' : 'channels' }}
+                  <span v-if="mediaInfo.audio.channels === 2" class="text-xs text-gray-500">(Stereo)</span>
+                  <span v-else-if="mediaInfo.audio.channels === 1" class="text-xs text-gray-500">(Mono)</span>
+                  <span v-else-if="mediaInfo.audio.channels > 2" class="text-xs text-gray-500">(Surround)</span>
+                </p>
+              </div>
+
+              <!-- Audio Bitrate -->
+              <div v-if="mediaInfo.audio.bitrate" class="space-y-1">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <HardDrive :size="16" />
+                  <span class="text-xs font-medium uppercase">Audio Bitrate</span>
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white">
+                  {{ formatBitrate(mediaInfo.audio.bitrate) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- General Information -->
+            <div class="space-y-3">
+              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <Info :size="16" />
+                General Information
+              </h3>
+
+              <!-- Format -->
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <FileType :size="16" />
+                  <span class="text-xs font-medium uppercase">Format</span>
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white">
+                  {{ mediaInfo.general.format }}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ mediaInfo.general.format_long }}
+                </p>
+              </div>
+
+              <!-- Duration -->
+              <div v-if="mediaInfo.general.duration" class="space-y-1">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <Clock :size="16" />
+                  <span class="text-xs font-medium uppercase">Duration</span>
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white">
+                  {{ formatDuration(mediaInfo.general.duration) }}
+                </p>
+              </div>
+
+              <!-- Overall Bitrate -->
+              <div v-if="mediaInfo.general.bitrate" class="space-y-1">
+                <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                  <HardDrive :size="16" />
+                  <span class="text-xs font-medium uppercase">Overall Bitrate</span>
+                </div>
+                <p class="text-sm text-gray-900 dark:text-white">
+                  {{ formatBitrate(mediaInfo.general.bitrate) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Additional Metadata -->
+            <div v-if="Object.keys(mediaInfo.metadata).length > 0" class="space-y-2">
+              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                <Info :size="16" />
+                Metadata
+              </h3>
+              <div class="text-xs space-y-1 max-h-48 overflow-y-auto bg-gray-50 dark:bg-gray-900 p-2 rounded">
+                <div v-for="(value, key) in mediaInfo.metadata" :key="key" class="flex gap-2">
+                  <span class="text-gray-500 dark:text-gray-400 font-medium">{{ key }}:</span>
+                  <span class="text-gray-900 dark:text-white flex-1 break-all">{{ value }}</span>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
     </div>
