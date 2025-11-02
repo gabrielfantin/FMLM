@@ -188,6 +188,13 @@ This document tracks the status of features planned and implemented in the FMLM 
       - Format-specific details
     - **On-demand metadata extraction:**
       - Metadata loaded when file is selected (not during directory scan)
+      - **Database caching implemented:**
+        - First checks if metadata exists in database for the file
+        - Compares file modification time with stored metadata timestamp
+        - Returns cached data if file hasn't changed since last extraction
+        - Automatically re-extracts metadata if file was modified
+        - Stores newly extracted metadata in database for future use
+        - Significantly faster on subsequent views of the same files
       - Loading indicator while extracting information
       - Error handling for unsupported formats
     - **Backend implementation:**
@@ -200,6 +207,12 @@ This document tracks the status of features planned and implemented in the FMLM 
         - bitrate, frame_rate
         - sample_rate, audio_channels
         - format, metadata_json
+      - **Intelligent caching system:**
+        - Database lookup before FFmpeg extraction (much faster)
+        - File modification time comparison to detect changes
+        - Automatic re-extraction only when files are modified
+        - Database index on file_path for fast cache lookups
+        - Fallback to FFmpeg extraction for new or changed files
       - Optional database caching for future performance improvements
     - **Dependencies:** `rsmpeg`, `image` crate with GenericImageView trait
 - ✅ **Cleaner Thumbnail Cards:**
@@ -248,7 +261,8 @@ This document tracks the status of features planned and implemented in the FMLM 
 - ⏳ Full-screen slideshow mode
 - ⏳ Virtual scrolling for performance with 1000+ files
 - ⏳ Actions for selected files (delete, move, export, etc.)
-- ⏳ Database caching for extracted metadata (currently extracted on-demand)
+- ⏳ Store pixel format and sample format in database cache
+- ⏳ Enhanced EXIF parsing for photos (GPS, camera settings)
 
 **Technical Stack:**
 - Rust: `image`, `walkdir`, `serde`, `chrono`

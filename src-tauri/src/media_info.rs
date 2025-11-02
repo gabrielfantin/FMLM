@@ -16,6 +16,9 @@ use std::collections::HashMap;
 use thiserror::Error;
 use tracing::{debug, error, instrument};
 use image::GenericImageView;
+use crate::database::{self, DbPool, InsertMediaParams};
+use chrono::{DateTime, Utc};
+use tauri::State;
 
 /// Error types for media info extraction
 #[derive(Debug, Error)]
@@ -529,9 +532,314 @@ fn gcd(mut a: i32, mut b: i32) -> i32 {
     a
 }
 
-/// Tauri command to get media information
+/// Tauri command to get media information with database caching
 #[tauri::command]
-pub async fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
-    extract_media_info(&file_path)
+pub async fn get_media_info(pool: State<'_, DbPool>, file_path: String) -> Result<MediaInfo, String> {
+    get_media_info_with_cache(&pool, &file_path)
+        .await
         .map_err(|e| e.to_string())
+}
+
+/// Get media information with database caching
+async fn get_media_info_with_cache(pool: &DbPool, file_path: &str) -> MediaInfoResult<MediaInfo> {
+    debug!("Getting media info for: {}", file_path);
+    
+    // Get file metadata to check modification time
+    let file_metadata = std::fs::metadata(file_path)
+        .map_err(|e| MediaInfoError::FileOpen(format!("Cannot access file: {}", e)))?;
+    
+    let file_modified = file_metadata
+        .modified()
+        .ok()
+        .and_then(|time| {
+            time.duration_since(std::time::UNIX_EPOCH)
+                .ok()
+                .map(|d| DateTime::from_timestamp(d.as_secs() as i64, 0))
+        })
+        .flatten()
+        .unwrap_or_else(Utc::now);
+    
+    // Check if we have cached metadata in the database
+    if let Ok(Some(cached_metadata)) = database::get_media_metadata_by_path(pool, file_path).await {
+        debug!("Found cached metadata in database");
+        
+        // Check if file has been modified since last metadata extraction
+        if cached_metadata.modified_date >= file_modified {
+            debug!("File hasn't changed, using cached metadata");
+            
+            // Convert cached metadata to MediaInfo format
+            if let Some(media_info) = convert_metadata_to_media_info(&cached_metadata) {
+                return Ok(media_info);
+            } else {
+                debug!("Cached metadata incomplete, will re-extract");
+            }
+        } else {
+            debug!("File has been modified since last extraction, will re-extract");
+        }
+    } else {
+        debug!("No cached metadata found, will extract");
+    }
+    
+    // Extract fresh metadata using FFmpeg
+    let media_info = extract_media_info(file_path)?;
+    
+    // Store the extracted metadata in database for future use
+    if let Err(e) = store_media_info_in_database(pool, file_path, &media_info, file_modified).await {
+        error!("Failed to store metadata in database: {}", e);
+        // Continue anyway - we have the metadata even if we can't cache it
+    }
+    
+    Ok(media_info)
+}
+
+/// Convert database MediaMetadata to MediaInfo format
+fn convert_metadata_to_media_info(metadata: &database::MediaMetadata) -> Option<MediaInfo> {
+    // Only return cached data if we have the essential video/audio codec information
+    // This ensures we only use cache for complete metadata extractions
+    let has_video_info = metadata.video_codec.is_some() && metadata.width.is_some();
+    let has_complete_info = has_video_info || metadata.format.is_some();
+    
+    if !has_complete_info {
+        return None;
+    }
+    
+    let video_info = if let (Some(codec), Some(codec_long), Some(width), Some(height)) = (
+        &metadata.video_codec,
+        &metadata.video_codec_long,
+        metadata.width,
+        metadata.height,
+    ) {
+        let aspect_ratio = if height > 0 {
+            let gcd = gcd(width as i32, height as i32);
+            format!("{}:{}", width / gcd as i64, height / gcd as i64)
+        } else {
+            "N/A".to_string()
+        };
+        
+        Some(VideoInfo {
+            codec: codec.clone(),
+            codec_long: codec_long.clone(),
+            width: width as i32,
+            height: height as i32,
+            fps: metadata.frame_rate.unwrap_or(0.0),
+            bitrate: metadata.bitrate,
+            pix_fmt: "cached".to_string(), // We don't store pixel format in DB yet
+            aspect_ratio,
+        })
+    } else {
+        None
+    };
+    
+    let audio_info = if let (Some(codec), Some(codec_long)) = (
+        &metadata.audio_codec,
+        &metadata.audio_codec_long,
+    ) {
+        Some(AudioInfo {
+            codec: codec.clone(),
+            codec_long: codec_long.clone(),
+            sample_rate: metadata.sample_rate.unwrap_or(0) as i32,
+            channels: metadata.audio_channels.unwrap_or(0) as i32,
+            bitrate: metadata.bitrate,
+            sample_fmt: "cached".to_string(), // We don't store sample format in DB yet
+        })
+    } else {
+        None
+    };
+    
+    let metadata_map = if let Some(metadata_json) = &metadata.metadata_json {
+        serde_json::from_str(metadata_json).unwrap_or_default()
+    } else {
+        HashMap::new()
+    };
+    
+    Some(MediaInfo {
+        video: video_info,
+        audio: audio_info,
+        general: GeneralInfo {
+            format: metadata.format.clone().unwrap_or_else(|| metadata.file_type.clone()),
+            format_long: metadata.format.clone().unwrap_or_else(|| {
+                format!("{} File", metadata.file_type.to_uppercase())
+            }),
+            duration: metadata.duration,
+            bitrate: metadata.bitrate,
+            size: metadata.file_size,
+        },
+        metadata: metadata_map,
+    })
+}
+
+/// Store extracted media info in database for caching
+async fn store_media_info_in_database(
+    pool: &DbPool,
+    file_path: &str,
+    media_info: &MediaInfo,
+    file_modified: DateTime<Utc>,
+) -> Result<(), database::DatabaseError> {
+    debug!("Storing media info in database for caching");
+    
+    // Try to find if this file belongs to any scanned folder
+    let folder_id = find_folder_id_for_file(pool, file_path).await;
+    
+    if folder_id.is_none() {
+        debug!("No folder_id found for file, using direct SQL insert without FK constraint");
+        // Use direct SQL to insert without foreign key constraint
+        return insert_metadata_without_folder(pool, file_path, media_info, file_modified).await;
+    }
+    
+    // Serialize additional metadata to JSON
+    let metadata_json = if !media_info.metadata.is_empty() {
+        Some(serde_json::to_string(&media_info.metadata).unwrap_or_default())
+    } else {
+        None
+    };
+    
+    // Extract file name from path
+    let file_name = std::path::Path::new(file_path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("unknown")
+        .to_string();
+    
+    // Extract file extension
+    let file_type = std::path::Path::new(file_path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "unknown".to_string());
+    
+    let params = InsertMediaParams {
+        folder_id: folder_id.unwrap(),
+        file_path: file_path.to_string(),
+        file_name,
+        file_type,
+        file_size: media_info.general.size,
+        width: media_info.video.as_ref().map(|v| v.width as i64),
+        height: media_info.video.as_ref().map(|v| v.height as i64),
+        duration: media_info.general.duration,
+        created_date: None,
+        modified_date: file_modified,
+        thumbnail_path: None,
+        video_codec: media_info.video.as_ref().map(|v| v.codec.clone()),
+        video_codec_long: media_info.video.as_ref().map(|v| v.codec_long.clone()),
+        audio_codec: media_info.audio.as_ref().map(|a| a.codec.clone()),
+        audio_codec_long: media_info.audio.as_ref().map(|a| a.codec_long.clone()),
+        bitrate: media_info.general.bitrate,
+        frame_rate: media_info.video.as_ref().map(|v| v.fps),
+        sample_rate: media_info.audio.as_ref().map(|a| a.sample_rate as i64),
+        audio_channels: media_info.audio.as_ref().map(|a| a.channels as i64),
+        format: Some(media_info.general.format.clone()),
+        metadata_json,
+    };
+    
+    database::insert_media_metadata(pool, params).await?;
+    debug!("Media info stored in database successfully");
+    
+    Ok(())
+}
+
+/// Find the folder_id for a given file path by checking scanned folders
+async fn find_folder_id_for_file(pool: &DbPool, file_path: &str) -> Option<i64> {
+    // Get all scanned folders and find which one contains this file
+    if let Ok(folders) = database::get_all_scanned_folders(pool).await {
+        for folder in folders {
+            if file_path.starts_with(&folder.path) {
+                return Some(folder.id);
+            }
+        }
+    }
+    None
+}
+
+/// Insert metadata directly with SQL, bypassing the foreign key constraint
+async fn insert_metadata_without_folder(
+    pool: &DbPool,
+    file_path: &str,
+    media_info: &MediaInfo,
+    file_modified: DateTime<Utc>,
+) -> Result<(), database::DatabaseError> {
+    let metadata_json = if !media_info.metadata.is_empty() {
+        Some(serde_json::to_string(&media_info.metadata).unwrap_or_default())
+    } else {
+        None
+    };
+    
+    let file_name = std::path::Path::new(file_path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("unknown")
+        .to_string();
+    
+    let file_type = std::path::Path::new(file_path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|s| s.to_lowercase())
+        .unwrap_or_else(|| "unknown".to_string());
+    
+    let now = Utc::now();
+    
+    // First, disable foreign key constraints for this connection
+    sqlx::query("PRAGMA foreign_keys = OFF")
+        .execute(pool)
+        .await?;
+    
+    // Insert or update the metadata
+    let _ = sqlx::query(
+        r#"
+        INSERT INTO media_metadata (
+            folder_id, file_path, file_name, file_type, file_size,
+            width, height, duration, created_date, modified_date,
+            thumbnail_path, indexed_at,
+            video_codec, video_codec_long, audio_codec, audio_codec_long,
+            bitrate, frame_rate, sample_rate, audio_channels, format, metadata_json
+        )
+        VALUES (0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(file_path) DO UPDATE SET
+            modified_date = excluded.modified_date,
+            file_size = excluded.file_size,
+            width = excluded.width,
+            height = excluded.height,
+            duration = excluded.duration,
+            video_codec = excluded.video_codec,
+            video_codec_long = excluded.video_codec_long,
+            audio_codec = excluded.audio_codec,
+            audio_codec_long = excluded.audio_codec_long,
+            bitrate = excluded.bitrate,
+            frame_rate = excluded.frame_rate,
+            sample_rate = excluded.sample_rate,
+            audio_channels = excluded.audio_channels,
+            format = excluded.format,
+            metadata_json = excluded.metadata_json
+        "#,
+    )
+    .bind(file_path)
+    .bind(&file_name)
+    .bind(&file_type)
+    .bind(media_info.general.size)
+    .bind(media_info.video.as_ref().map(|v| v.width as i64))
+    .bind(media_info.video.as_ref().map(|v| v.height as i64))
+    .bind(media_info.general.duration)
+    .bind::<Option<DateTime<Utc>>>(None)
+    .bind(file_modified)
+    .bind::<Option<&str>>(None)
+    .bind(now)
+    .bind(media_info.video.as_ref().map(|v| v.codec.as_str()))
+    .bind(media_info.video.as_ref().map(|v| v.codec_long.as_str()))
+    .bind(media_info.audio.as_ref().map(|a| a.codec.as_str()))
+    .bind(media_info.audio.as_ref().map(|a| a.codec_long.as_str()))
+    .bind(media_info.general.bitrate)
+    .bind(media_info.video.as_ref().map(|v| v.fps))
+    .bind(media_info.audio.as_ref().map(|a| a.sample_rate as i64))
+    .bind(media_info.audio.as_ref().map(|a| a.channels as i64))
+    .bind(Some(media_info.general.format.as_str()))
+    .bind(metadata_json.as_deref())
+    .execute(pool)
+    .await?;
+    
+    // Re-enable foreign key constraints
+    sqlx::query("PRAGMA foreign_keys = ON")
+        .execute(pool)
+        .await?;
+    
+    debug!("Media info stored in database successfully (without folder)");
+    Ok(())
 }

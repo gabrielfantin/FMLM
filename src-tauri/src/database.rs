@@ -260,6 +260,16 @@ async fn run_migrations(pool: &DbPool) -> DatabaseResult<()> {
     .execute(pool)
     .await?;
     
+    // Index for fast cache lookups by file path
+    sqlx::query(
+        r#"
+        CREATE INDEX IF NOT EXISTS idx_media_file_path 
+        ON media_metadata(file_path)
+        "#,
+    )
+    .execute(pool)
+    .await?;
+    
     // Create user_preferences table
     sqlx::query(
         r#"
@@ -459,6 +469,38 @@ pub async fn delete_media_metadata(pool: &DbPool, file_path: &str) -> DatabaseRe
         .await?;
     
     Ok(())
+}
+
+/// Retrieves media metadata by file path for caching purposes
+///
+/// This function is used to check if metadata already exists for a file
+/// and whether it needs to be updated based on modification time.
+///
+/// # Arguments
+///
+/// * `pool` - Database connection pool
+/// * `file_path` - Full path to the media file
+///
+/// # Returns
+///
+/// Returns `Some(MediaMetadata)` if found, `None` if not in database
+pub async fn get_media_metadata_by_path(pool: &DbPool, file_path: &str) -> DatabaseResult<Option<MediaMetadata>> {
+    let metadata = sqlx::query_as::<_, MediaMetadata>(
+        r#"
+        SELECT id, folder_id, file_path, file_name, file_type, file_size,
+               width, height, duration, created_date, modified_date,
+               thumbnail_path, indexed_at,
+               video_codec, video_codec_long, audio_codec, audio_codec_long,
+               bitrate, frame_rate, sample_rate, audio_channels, format, metadata_json
+        FROM media_metadata
+        WHERE file_path = ?
+        "#,
+    )
+    .bind(file_path)
+    .fetch_optional(pool)
+    .await?;
+    
+    Ok(metadata)
 }
 
 // ============================================================================
