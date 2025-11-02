@@ -52,7 +52,7 @@ const props = defineProps<Props>()
 const { width: panelWidth, isResizing, startResize } = useResizable({
   defaultWidth: 384, // 96 * 4 = 384px (w-96)
   minWidth: 300,
-  maxWidthPercent: 70, // 70% of screen width
+  maxWidthPercent: 80, // 70% of screen width
   side: 'right'
 })
 
